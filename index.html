@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bagel's Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <header class="bg-blue-700 text-white p-4 shadow-xl">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-3xl font-bold mb-2 md:mb-0 font-['Press_Start_2P']">Bagel's Arcade</h1>
+            <nav>
+                <ul class="flex flex-wrap justify-center md:justify-start space-x-4 text-lg">
+                    <li><a href="#" class="game-link hover:underline hover:text-blue-200 transition-colors duration-200" data-game="tic-tac-toe">Tic Tac Toe</a></li>
+                    <li><a href="#" class="game-link hover:underline hover:text-blue-200 transition-colors duration-200" data-game="tetris">Tetris</a></li> 
+                    <li><a href="#" class="game-link hover:underline hover:text-blue-200 transition-colors duration-200" data-game="card-matching">Card Matching</a></li>
+                    <li><a href="#" class="game-link hover:underline hover:text-blue-200 transition-colors duration-200" data-game="ping-pong">Ping Pong</a></li>
+                    <li><a href="#" class="game-link hover:underline hover:text-blue-200 transition-colors duration-200" data-game="projectile">Projectile Game</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="game-container container mx-auto">
+        <div id="game-area" class="w-full max-w-4xl p-6">
+            <h2 class="text-2xl font-semibold text-center mb-4 text-gray-800">Select a game from the menu above!</h2>
+            </div>
+    </main>
+
+    <div id="message-box" class="message-box"></div>
+
+    <script src="script.js" defer></script>
+
+</body>
+</html>

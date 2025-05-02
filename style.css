@@ -1,0 +1,246 @@
+/* style.css */
+/* Base styles from the original <style> block */
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(to bottom right, #60a5fa, #3b82f6); /* Gradient background */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding-top: 70px; /* Space for fixed header */
+    margin: 0; /* Remove default body margin */
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 50; /* Ensure header is on top */
+}
+
+.game-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align items to the top - this container centers the game-area */
+    padding: 20px;
+    overflow-y: auto; /* Allow scrolling if game content is large */
+}
+
+#game-area {
+     background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent white */
+     backdrop-filter: blur(5px); /* Frosted glass effect */
+     border-radius: 12px; /* More rounded corners */
+     box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow */
+     padding: 30px; /* More padding */
+     display: flex; /* Make game-area a flex container */
+     flex-direction: column; /* Stack children vertically */
+     justify-content: center; /* Center children horizontally */
+     align-items: center; /* Center children vertically */
+}
+
+/* Custom styles for game boards/elements */
+#tic-tac-toe-board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(80px, 1fr)); /* Responsive grid */
+    grid-template-rows: repeat(3, minmax(80px, 1fr));
+    gap: 8px; /* Increased gap */
+    margin-top: 20px;
+    max-width: 300px; /* Max width for the board */
+    width: 100%;
+}
+
+.tic-tac-toe-cell {
+    width: 100%; /* Fill grid cell */
+    height: 100%; /* Fill grid cell */
+    background-color: #e2e8f0; /* Lighter background */
+    border: 3px solid #4a5568; /* Darker border */
+    border-radius: 8px; /* Rounded cell corners */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3.5em; /* Slightly larger font */
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    color: #2d3748; /* Darker text color */
+}
+
+.tic-tac-toe-cell:hover {
+    background-color: #cbd5e0; /* Hover effect */
+    transform: scale(1.05); /* Slight scale on hover */
+}
+
+#tetris-board {
+    border: 4px solid #4a5568; /* Thicker border */
+    background-color: #1a202c; /* Darker background */
+    margin-top: 20px;
+    border-radius: 8px; /* Rounded corners for canvas */
+    /* Size will be set by JS, but ensure it's responsive */
+    display: block; /* Remove extra space below canvas */
+    max-width: 100%; /* Ensure it doesn't overflow */
+    height: auto; /* Maintain aspect ratio */
+}
+
+ #ping-pong-board,
+ #projectile-board {
+     border: 4px solid #4a5568; /* Thicker border */
+     background-color: #1a202c; /* Darker background */
+     margin-top: 20px;
+     border-radius: 8px; /* Rounded corners for canvas */
+     display: block;
+     max-width: 100%;
+     height: auto;
+ }
+
+
+#card-matching-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 15px; /* Increased gap */
+    margin-top: 20px;
+    max-width: 700px; /* Increased max width */
+    width: 100%;
+    justify-content: center; /* Center cards in the grid */
+}
+
+.card {
+    width: 100%; /* Make card width responsive within grid cell */
+    padding-bottom: 140%; /* Maintain aspect ratio (height is 140% of width) */
+    background-color: #4a5568; /* Card back color */
+    border-radius: 10px; /* More rounded corners */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add shadow */
+}
+
+.card.flipped {
+    transform: rotateY(180deg);
+}
+
+.card .card-inner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    text-align: center;
+    /* backface-visibility: hidden; REMOVED - Handled by rotating front/back */
+    border-radius: 10px; /* Match parent border-radius */
+    overflow: hidden; /* Hide overflowing content */
+}
+
+.card .card-front,
+.card .card-back {
+     position: absolute;
+     width: 100%;
+     height: 100%;
+     top: 0;
+     left: 0;
+     backface-visibility: hidden; /* Hide the back side when not facing the viewer */
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     border-radius: 10px; /* Match parent border-radius */
+}
+
+
+.card .card-front {
+    background-color: #fff; /* Card face color */
+    color: #333;
+    transform: rotateY(180deg) scaleX(-1); /* Initially rotated away and inverted */
+    font-size: 2em; /* Adjusted font size for letters */
+    font-weight: bold;
+}
+
+ .card.flipped .card-front {
+     transform: rotateY(0deg) scaleX(-1); /* Face the viewer when card is flipped, still inverted */
+ }
+
+
+ .card .card-back {
+    background-color: #4a5568; /* Card back color */
+    color: white;
+     font-family: 'Press Start 2P', cursive; /* Arcade font for back */
+     font-size: 1.5em;
+     transform: rotateY(0deg); /* Initially facing the viewer */
+}
+
+.card.flipped .card-back {
+    transform: rotateY(180deg); /* Rotate away when card is flipped */
+}
+
+
+.card.matched .card-front {
+     background-color: #9ae6b4; /* Matched card color */
+}
+
+
+/* Message Box Styling */
+.message-box {
+    position: fixed;
+    top: 80px; /* Position below the fixed header */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4a5568;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: none; /* Prevent interaction */
+}
+
+.message-box.show {
+    opacity: 1;
+}
+
+/* Button Styling */
+button {
+    font-family: 'Press Start 2P', cursive; /* Arcade font for buttons */
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer; /* Ensure buttons have pointer cursor */
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+     transform: translateY(0);
+     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Include Tailwind color utility classes if you are NOT using the CDN script */
+/* Example: */
+/* .bg-blue-500 { background-color: #3b82f6; } */
+/* .hover\:bg-blue-600:hover { background-color: #2563eb; } */
+/* .bg-green-500 { background-color: #22c55e; } */
+/* .hover\:bg-green-600:hover { background-color: #16a34a; } */
+/* .bg-yellow-500 { background-color: #f59e0b; } */
+/* .hover\:bg-yellow-600:hover { background-color: #d97706; } */
+/* .text-white { color: #fff; } */
+/* ... add other necessary Tailwind utility classes if removing the CDN ... */
+
+/* Ensure specific button colors work even if Tailwind CDN is removed/modified */
+.bg-blue-600 { background-color: #2563eb !important; }
+.hover\:bg-blue-700:hover { background-color: #1d4ed8 !important; }
+.bg-green-600 { background-color: #16a34a !important; }
+.hover\:bg-green-700:hover { background-color: #15803d !important; }
+.bg-yellow-600 { background-color: #ca8a04 !important; }
+.hover\:bg-yellow-700:hover { background-color: #a16207 !important; }
+.text-white { color: #ffffff !important; }
