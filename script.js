@@ -899,25 +899,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Projectile Launch Game (Keep as is from original script)
+    // Projectile Launch Game (IMPROVED)
     function loadProjectileGame() {
         gameArea.innerHTML = `
-            <h2 class="text-2xl font-semibold text-center mb-6 text-gray-800">Projectile Game</h2>
+            <h2 class="text-2xl font-semibold text-center mb-6 text-gray-800">Projectile Golf</h2>
             <canvas id="projectile-board" width="800" height="400"></canvas>
-            <div class="text-center mt-4">
-                 <span id="level-display" class="text-gray-700 font-semibold mr-4">Level: 1</span>
+            <div class="flex justify-center items-center flex-wrap text-center mt-4 gap-2">
+                 <span id="level-display" class="text-gray-700 font-semibold">Level: 1</span>
+                 <span id="shot-display" class="text-gray-700 font-semibold">Shots: 0</span>
+                 <span id="par-display" class="text-gray-700 font-semibold">Par: 1</span>
                 <label for="launch-angle" class="text-gray-700 font-semibold">Angle:</label>
-                <input type="range" id="launch-angle" min="0" max="90" value="45">
-                <span id="angle-value" class="text-gray-700">45°</span>
+                <input type="range" id="launch-angle" min="0" max="90" value="45" class="w-24">
+                <span id="angle-value" class="text-gray-700 w-10">45°</span>
 
-                <label for="launch-power" class="text-gray-700 font-semibold ml-4">Power:</label>
-                <input type="range" id="launch-power" min="10" max="100" value="50">
-                <span id="power-value" class="text-gray-700">50</span>
+                <label for="launch-power" class="text-gray-700 font-semibold">Power:</label>
+                <input type="range" id="launch-power" min="10" max="100" value="50" class="w-24">
+                <span id="power-value" class="text-gray-700 w-10">50</span>
             </div>
             <div class="text-center mt-6 space-x-4">
                 <button id="projectile-launch" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">Launch</button>
-                <button id="projectile-reset-level" class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">Reset Level</button> {/* Changed Reset to Reset Level */}
-                <button id="projectile-reset-game" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Reset Game</button>
+                <button id="projectile-reset-level" class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">Reset Level</button>
+                <button id="projectile-reset-game" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Restart Game</button>
             </div>
              <p id="projectile-status" class="text-center mt-4 text-xl text-gray-700 font-semibold"></p>
         `;
@@ -929,367 +931,298 @@ document.addEventListener('DOMContentLoaded', () => {
         const powerInput = document.getElementById('launch-power');
         const powerValueSpan = document.getElementById('power-value');
         const launchButton = document.getElementById('projectile-launch');
-        const resetLevelButton = document.getElementById('projectile-reset-level'); // Renamed variable
-        const resetGameButton = document.getElementById('projectile-reset-game'); // New variable
+        const resetLevelButton = document.getElementById('projectile-reset-level');
+        const resetGameButton = document.getElementById('projectile-reset-game');
         const statusDisplay = document.getElementById('projectile-status');
         const levelDisplay = document.getElementById('level-display');
+        const shotDisplay = document.getElementById('shot-display');
+        const parDisplay = document.getElementById('par-display');
 
         // Game variables
-        const gravity = 0.4; // Adjusted gravity slightly
-        const bounceDampening = 0.7; // Adjusted dampening
-        const groundY = canvas.height - 30;
-        const launcherX = 50;
-        const launcherY = groundY - 20; // Start projectile slightly above ground line
+        const gravity = 0.5;
+        const bounceDampening = 0.65;
+        const groundY = canvas.height;
+        const defaultLauncherX = 50;
+        const defaultLauncherY = groundY - 20;
+        const minVelocity = 0.5;
+
+        let launcherX = defaultLauncherX;
+        let launcherY = defaultLauncherY;
+        
+        let shotCount = 0;
+        let totalShotCount = 0;
 
         let projectile = { x: launcherX, y: launcherY, radius: 10, color: '#fde047', velocityX: 0, velocityY: 0 };
         let isProjectileLaunched = false;
-        let animationFrameId = null; // To cancel animation frame
+        let animationFrameId = null;
 
-        // Level configurations (ensure coordinates are within canvas bounds)
-        // Adjusted some levels for better playability
         const levels = [
-            // Level 1
-            {
-                target: { x: canvas.width - 100, y: groundY, radius: 15, color: '#ef4444' },
-                obstacles: []
-            },
-            // Level 2
-            {
-                target: { x: canvas.width - 150, y: groundY, radius: 15, color: '#ef4444' },
-                obstacles: [ { x: 400, y: groundY - 100, width: 20, height: 100, color: '#4a5568' } ]
-            },
-            // Level 3
-            {
-                target: { x: canvas.width - 200, y: groundY, radius: 15, color: '#ef4444' },
-                obstacles: [
-                    { x: 350, y: groundY - 120, width: 20, height: 120, color: '#4a5568' },
-                    { x: 550, y: groundY - 80, width: 20, height: 80, color: '#4a5568' }
-                ]
-            },
-             // Level 4
-             {
-                 target: { x: canvas.width - 100, y: groundY - 50, radius: 15, color: '#ef4444' }, // Raised target slightly
-                 obstacles: [
-                     { x: 300, y: groundY - 80, width: 200, height: 20, color: '#4a5568' } // Horizontal obstacle
-                 ]
-             },
-              // Level 5
-             {
-                 target: { x: canvas.width - 150, y: groundY, radius: 15, color: '#ef4444' },
-                 obstacles: [
-                     { x: 300, y: groundY - 150, width: 20, height: 150, color: '#4a5568' },
-                     { x: 500, y: groundY - 100, width: 150, height: 20, color: '#4a5568' } // Horizontal
-                 ]
-             },
-             // Level 6 - Target behind two walls
-             {
-                 target: { x: canvas.width - 100, y: groundY, radius: 15, color: '#ef4444' },
-                 obstacles: [
-                     { x: 300, y: groundY - 180, width: 20, height: 180, color: '#4a5568' },
-                     { x: 500, y: groundY - 180, width: 20, height: 180, color: '#4a5568' },
-                 ]
-            },
-             // Level 7 - Target on a platform
-            {
-                target: { x: 600, y: groundY - 100, radius: 15, color: '#ef4444' },
-                obstacles: [
-                     { x: 550, y: groundY - 100, width: 100, height: 20, color: '#4a5568' }, // Platform
-                     { x: 300, y: groundY - 80, width: 20, height: 80, color: '#4a5568' } // Wall before
-                ]
-            },
-             // Level 8 - Bouncing challenge
-            {
-                target: { x: canvas.width - 80, y: groundY, radius: 15, color: '#ef4444' },
-                obstacles: [
-                    { x: 250, y: groundY - 80, width: 100, height: 20, color: '#4a5568' }, // Low platform
-                    { x: 450, y: groundY - 160, width: 100, height: 20, color: '#4a5568' } // Higher platform
-                ]
-            },
-             // Level 9 - Through a gap
-            {
-                target: { x: canvas.width - 100, y: groundY, radius: 15, color: '#ef4444' },
-                obstacles: [
-                    { x: 400, y: 0, width: 20, height: groundY - 100, color: '#4a5568' }, // Upper part of wall
-                    { x: 400, y: groundY - 50, width: 20, height: 50, color: '#4a5568' } // Lower part of wall (gap between)
-                ]
-            },
-            // Level 10 (Final Level) - Complex
-            {
-                 target: { x: canvas.width - 50, y: groundY - 150, radius: 15, color: '#ef4444' }, // High target
-                 obstacles: [
-                     { x: 200, y: groundY - 100, width: 20, height: 100, color: '#4a5568' },
-                     { x: 350, y: groundY - 180, width: 100, height: 20, color: '#4a5568' }, // Horizontal platform
-                     { x: 500, y: groundY - 200, width: 20, height: 200, color: '#4a5568' },
-                     { x: 650, y: groundY - 120, width: 100, height: 20, color: '#4a5568' } // Horizontal platform
-                 ]
-            }
+            { target: { x: canvas.width - 100, y: groundY, radius: 20, color: '#ef4444' }, obstacles: [], par: 1 },
+            { target: { x: canvas.width - 150, y: groundY, radius: 20, color: '#ef4444' }, obstacles: [ { x: 400, y: groundY - 100, width: 20, height: 100, color: '#4a5568' } ], par: 2 },
+            { target: { x: canvas.width - 200, y: groundY, radius: 20, color: '#ef4444' }, obstacles: [ { x: 350, y: groundY - 120, width: 20, height: 120, color: '#4a5568' }, { x: 550, y: groundY - 80, width: 20, height: 80, color: '#4a5568' } ], par: 3 },
+            { target: { x: canvas.width - 100, y: groundY - 50, radius: 20, color: '#ef4444' }, obstacles: [ { x: 300, y: groundY - 80, width: 200, height: 20, color: '#4a5568' } ], par: 2 },
+            { target: { x: canvas.width - 150, y: groundY, radius: 20, color: '#ef4444' }, obstacles: [ { x: 300, y: groundY - 150, width: 20, height: 150, color: '#4a5568' }, { x: 500, y: groundY - 100, width: 150, height: 20, color: '#4a5568' } ], par: 3 },
+            { target: { x: 400, y: groundY - 150, radius: 20, color: '#ef4444' }, obstacles: [ { x: 200, y: groundY - 100, width: 100, height: 20, color: '#4a5568' }, { x: 450, y: groundY - 180, width: 100, height: 20, color: '#4a5568' } ], par: 3 },
         ];
 
         let currentLevelIndex = 0;
         let currentLevel = levels[currentLevelIndex];
 
-
-        // Update angle and power displays
         angleInput.addEventListener('input', () => {
             angleValueSpan.textContent = `${angleInput.value}°`;
-             if (!isProjectileLaunched) draw(); // Redraw launcher angle if not launched
+             if (!isProjectileLaunched) draw();
         });
         powerInput.addEventListener('input', () => {
             powerValueSpan.textContent = powerInput.value;
-             if (!isProjectileLaunched) draw(); // Redraw launcher power if not launched
+             if (!isProjectileLaunched) draw();
         });
 
-
-        // Draw elements
-        function drawRect(x, y, width, height, color) {
-            context.fillStyle = color;
-            context.fillRect(x, y, width, height);
-        }
-
-        function drawCircle(x, y, radius, color) {
-            context.fillStyle = color;
-            context.beginPath();
-            context.arc(x, y, radius, 0, Math.PI * 2, false);
-            context.fill();
-        }
-
-        function drawLine(x1, y1, x2, y2, color, width) {
-             context.strokeStyle = color;
-             context.lineWidth = width;
-             context.beginPath();
-             context.moveTo(x1, y1);
-             context.lineTo(x2, y2);
-             context.stroke();
-        }
-
+        function drawRect(x, y, width, height, color) { context.fillStyle = color; context.fillRect(x, y, width, height); }
+        function drawCircle(x, y, radius, color) { context.fillStyle = color; context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2, false); context.fill(); }
+        function drawLine(x1, y1, x2, y2, color, width) { context.strokeStyle = color; context.lineWidth = width; context.beginPath(); context.moveTo(x1, y1); context.lineTo(x2, y2); context.stroke(); }
 
         function draw() {
-            // Background
-            drawRect(0, 0, canvas.width, canvas.height, '#a0aec0'); // Lighter background
-
+            // Sky gradient
+            const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87ceeb');
+            gradient.addColorStop(1, '#a0aec0');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
             // Ground
-            drawRect(0, groundY, canvas.width, canvas.height - groundY, '#718096'); // Ground color
-
-            // Launcher representation (simple circle)
-            drawCircle(launcherX, launcherY, 5, '#2d3748');
-
-            // Draw aiming line if not launched
-             if (!isProjectileLaunched) {
-                 const angle = parseInt(angleInput.value);
-                 const power = parseInt(powerInput.value);
-                 const radians = angle * Math.PI / 180;
-                 const lineLength = power * 0.7; // Adjusted line length
-                 const endX = launcherX + lineLength * Math.cos(radians);
-                 const endY = launcherY - lineLength * Math.sin(radians); // Subtract because Y is inverted
-                 drawLine(launcherX, launcherY, endX, endY, '#2d3748', 3);
-             }
+            drawRect(0, groundY - 10, canvas.width, 10, '#84cc16');
+            
+            // Launcher position indicator
+            if (!isProjectileLaunched) {
+                drawCircle(launcherX, launcherY, 8, '#2d3748');
+                
+                // Aim line
+                const angle = parseInt(angleInput.value);
+                const power = parseInt(powerInput.value);
+                const radians = angle * Math.PI / 180;
+                const lineLength = power * 0.8;
+                const endX = launcherX + lineLength * Math.cos(radians);
+                const endY = launcherY - lineLength * Math.sin(radians);
+                drawLine(launcherX, launcherY, endX, endY, '#2d3748', 3);
+                
+                // Aim arrow
+                const arrowSize = 8;
+                const arrowAngle1 = radians + Math.PI * 0.85;
+                const arrowAngle2 = radians - Math.PI * 0.85;
+                drawLine(endX, endY, endX + arrowSize * Math.cos(arrowAngle1), endY - arrowSize * Math.sin(arrowAngle1), '#2d3748', 3);
+                drawLine(endX, endY, endX + arrowSize * Math.cos(arrowAngle2), endY - arrowSize * Math.sin(arrowAngle2), '#2d3748', 3);
+            }
 
             // Projectile
             drawCircle(projectile.x, projectile.y, projectile.radius, projectile.color);
-
-            // Target (Draw circle centered at target.x, target.y)
-            drawCircle(currentLevel.target.x, currentLevel.target.y - currentLevel.target.radius, currentLevel.target.radius, currentLevel.target.color); // Draw target resting on its bottom
-
-
+            
+            // Target with flag
+            const targetY = currentLevel.target.y - currentLevel.target.radius;
+            drawCircle(currentLevel.target.x, targetY, currentLevel.target.radius, currentLevel.target.color);
+            drawLine(currentLevel.target.x, targetY, currentLevel.target.x, targetY - 40, '#ffffff', 2);
+            context.fillStyle = '#22c55e';
+            context.beginPath();
+            context.moveTo(currentLevel.target.x, targetY - 40);
+            context.lineTo(currentLevel.target.x + 20, targetY - 30);
+            context.lineTo(currentLevel.target.x, targetY - 20);
+            context.fill();
+            
             // Obstacles
-            currentLevel.obstacles.forEach(obstacle => {
-                drawRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, obstacle.color);
+            currentLevel.obstacles.forEach(o => {
+                drawRect(o.x, o.y, o.width, o.height, o.color);
+                // Add border to obstacles
+                context.strokeStyle = '#2d3748';
+                context.lineWidth = 2;
+                context.strokeRect(o.x, o.y, o.width, o.height);
             });
-
-             // Update level display
-             levelDisplay.textContent = `Level: ${currentLevelIndex + 1}`;
+            
+            levelDisplay.textContent = `Level: ${currentLevelIndex + 1}`;
+            parDisplay.textContent = `Par: ${currentLevel.par}`;
         }
 
-        // Update game state
         function update() {
-            if (isProjectileLaunched) {
-                // Apply gravity
-                projectile.velocityY += gravity;
+            if (!isProjectileLaunched) return;
+            
+            projectile.velocityY += gravity;
+            projectile.x += projectile.velocityX;
+            projectile.y += projectile.velocityY;
 
-                // Update position
-                projectile.x += projectile.velocityX;
-                projectile.y += projectile.velocityY;
+            let hitTarget = false;
 
-                 let hitTarget = false; // Flag to check if target was hit this frame
-
-                // Check collision with ground
-                if (projectile.y + projectile.radius >= groundY) {
-                    projectile.y = groundY - projectile.radius; // Place on ground
-                    projectile.velocityX *= bounceDampening; // Dampen horizontal velocity
-                    projectile.velocityY *= -bounceDampening; // Reverse and dampen vertical velocity
-
-                     // Stop if velocity is negligible
-                     if (Math.abs(projectile.velocityY) < 1 && Math.abs(projectile.velocityX) < 1) {
-                          stopProjectile('Landed!');
-                          return; // Stop further updates this frame
-                     }
+            // Ground collision
+            if (projectile.y + projectile.radius >= groundY - 10) {
+                projectile.y = groundY - 10 - projectile.radius;
+                projectile.velocityX *= bounceDampening;
+                projectile.velocityY *= -bounceDampening;
+                
+                // Stop if velocity is too low
+                if (Math.abs(projectile.velocityY) < minVelocity && Math.abs(projectile.velocityX) < minVelocity) {
+                    stopProjectile('Landed!');
+                    return;
                 }
+            }
+            
+            // Ceiling collision
+            if (projectile.y - projectile.radius < 0) {
+                projectile.y = projectile.radius;
+                projectile.velocityY *= -bounceDampening;
+            }
+            
+            // Left wall collision
+            if (projectile.x - projectile.radius < 0) {
+                projectile.x = projectile.radius;
+                projectile.velocityX *= -bounceDampening;
+            }
+            
+            // Right wall collision
+            if (projectile.x + projectile.radius > canvas.width) {
+                projectile.x = canvas.width - projectile.radius;
+                projectile.velocityX *= -bounceDampening;
+            }
 
-                // Check collision with target
-                 const distanceToTargetCenter = Math.sqrt(Math.pow(projectile.x - currentLevel.target.x, 2) + Math.pow(projectile.y - (currentLevel.target.y - currentLevel.target.radius), 2));
-                 if (distanceToTargetCenter < projectile.radius + currentLevel.target.radius) {
-                     hitTarget = true; // Set the flag
-                 }
+            // Target collision
+            const targetY = currentLevel.target.y - currentLevel.target.radius;
+            const dist = Math.sqrt(Math.pow(projectile.x - currentLevel.target.x, 2) + Math.pow(projectile.y - targetY, 2));
+            if (dist < projectile.radius + currentLevel.target.radius) {
+                hitTarget = true;
+            }
 
-
-                // Check collision with obstacles
-                currentLevel.obstacles.forEach(obstacle => {
-                    // Simple Axis-Aligned Bounding Box (AABB) collision detection
-                    const projectileLeft = projectile.x - projectile.radius;
-                    const projectileRight = projectile.x + projectile.radius;
-                    const projectileTop = projectile.y - projectile.radius;
-                    const projectileBottom = projectile.y + projectile.radius;
-
-                    const obstacleLeft = obstacle.x;
-                    const obstacleRight = obstacle.x + obstacle.width;
-                    const obstacleTop = obstacle.y;
-                    const obstacleBottom = obstacle.y + obstacle.height;
-
-                    if (projectileRight > obstacleLeft && projectileLeft < obstacleRight &&
-                        projectileBottom > obstacleTop && projectileTop < obstacleBottom)
-                    {
-                        // Collision detected, determine bounce direction (simple approach)
-                        const prevProjectileX = projectile.x - projectile.velocityX;
-                        const prevProjectileY = projectile.y - projectile.velocityY;
-
-                        // Check horizontal collision
-                         if (prevProjectileX + projectile.radius <= obstacleLeft || prevProjectileX - projectile.radius >= obstacleRight) {
-                             projectile.velocityX *= -bounceDampening;
-                              // Nudge out horizontally
-                              projectile.x = (projectile.velocityX > 0) ? obstacleLeft - projectile.radius : obstacleRight + projectile.radius;
-
-                         }
-                         // Check vertical collision
-                         if (prevProjectileY + projectile.radius <= obstacleTop || prevProjectileY - projectile.radius >= obstacleBottom) {
-                             projectile.velocityY *= -bounceDampening;
-                              // Nudge out vertically
-                              projectile.y = (projectile.velocityY > 0) ? obstacleTop - projectile.radius : obstacleBottom + projectile.radius;
-                         }
+            // Obstacle collision
+            currentLevel.obstacles.forEach(o => {
+                if (projectile.x + projectile.radius > o.x && 
+                    projectile.x - projectile.radius < o.x + o.width && 
+                    projectile.y + projectile.radius > o.y && 
+                    projectile.y - projectile.radius < o.y + o.height) {
+                    
+                    const prevX = projectile.x - projectile.velocityX;
+                    const prevY = projectile.y - projectile.velocityY;
+                    
+                    // Determine collision side
+                    const fromLeft = prevX + projectile.radius <= o.x;
+                    const fromRight = prevX - projectile.radius >= o.x + o.width;
+                    const fromTop = prevY + projectile.radius <= o.y;
+                    const fromBottom = prevY - projectile.radius >= o.y + o.height;
+                    
+                    if (fromLeft || fromRight) {
+                        projectile.velocityX *= -bounceDampening;
+                        projectile.x = fromLeft ? o.x - projectile.radius : o.x + o.width + projectile.radius;
                     }
-                });
-
-                 // Check if projectile is out of bounds horizontally
-                 if (projectile.x + projectile.radius < 0 || projectile.x - projectile.radius > canvas.width) {
-                     stopProjectile('Out of Bounds!');
-                     return; // Stop further updates this frame
-                 }
-
-                 // Handle hitting the target AFTER checking other collisions for the frame
-                 if (hitTarget) {
-                    if (currentLevelIndex === levels.length - 1) {
-                        stopProjectile('You Win!', true); // Final level win
-                    } else {
-                        stopProjectile(`Level ${currentLevelIndex + 1} Complete!`, false, true); // Level complete, advance
+                    
+                    if (fromTop || fromBottom) {
+                        projectile.velocityY *= -bounceDampening;
+                        projectile.y = fromTop ? o.y - projectile.radius : o.y + o.height + projectile.radius;
                     }
-                    return; // Stop further updates this frame
-                 }
+                }
+            });
 
+            if (hitTarget) {
+                const finalShots = shotCount;
+                const par = currentLevel.par;
+                let scoreMsg = '';
+                
+                if (finalShots === 1) scoreMsg = 'Hole in One! 🎉';
+                else if (finalShots <= par - 2) scoreMsg = 'Eagle! 🦅';
+                else if (finalShots === par - 1) scoreMsg = 'Birdie! 🐦';
+                else if (finalShots === par) scoreMsg = 'Par! ⛳';
+                else if (finalShots === par + 1) scoreMsg = 'Bogey';
+                else scoreMsg = 'Complete!';
+                
+                if (currentLevelIndex === levels.length - 1) {
+                    stopProjectile(`${scoreMsg} You Win! Total: ${totalShotCount} shots`, true);
+                } else {
+                    stopProjectile(`${scoreMsg} Level ${currentLevelIndex + 1} done in ${finalShots} shots!`, false, true);
+                }
             }
         }
 
-        // Function to stop projectile motion and animation
         function stopProjectile(message, isFinalWin = false, advanceLevel = false) {
+             if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
              isProjectileLaunched = false;
              statusDisplay.textContent = message;
              showMessage(message, isFinalWin ? 5000 : 3000);
 
-             if (animationFrameId) {
-                 cancelAnimationFrame(animationFrameId);
-                 animationFrameId = null;
-             }
-
              if (advanceLevel) {
-                  // Add a short delay before advancing for visual feedback
                   setTimeout(() => {
                       currentLevelIndex++;
                       currentLevel = levels[currentLevelIndex];
-                      resetLevel(); // Reset for the next level
-                  }, 1500); // 1.5 second delay
+                      resetLevel();
+                  }, 2000);
+             } else if (message === 'Landed!') {
+                 launcherX = projectile.x;
+                 launcherY = projectile.y;
+                 resetProjectileState();
+                 draw();
              }
         }
 
-
-        // Game loop
         function gameLoop() {
             update();
             draw();
-            if (isProjectileLaunched) { // Continue loop only if launched
-                animationFrameId = requestAnimationFrame(gameLoop);
-            }
+            if (isProjectileLaunched) animationFrameId = requestAnimationFrame(gameLoop);
         }
+        
+        function updateShotDisplay() { shotDisplay.textContent = `Shots: ${shotCount}`; }
 
-        // Launch projectile
         launchButton.addEventListener('click', () => {
-            if (!isProjectileLaunched) {
-                const angle = parseInt(angleInput.value);
-                const power = parseInt(powerInput.value);
-                const radians = angle * Math.PI / 180;
-
-                // Reset projectile state before launch
-                resetProjectileState();
-
-                // Calculate initial velocity components
-                const initialVelocityMultiplier = 0.18; // Adjusted multiplier
-                projectile.velocityX = power * initialVelocityMultiplier * Math.cos(radians);
-                projectile.velocityY = -power * initialVelocityMultiplier * Math.sin(radians); // Negative Y
-
-                isProjectileLaunched = true;
-                statusDisplay.textContent = 'Launching...';
-                 if (animationFrameId) cancelAnimationFrame(animationFrameId); // Clear previous frame if any
-                gameLoop(); // Start the animation loop
-            } else {
-                showMessage('Projectile already launched! Reset level to try again.', 3000);
+            if (isProjectileLaunched) { 
+                showMessage('Shot in progress!', 2000); 
+                return; 
             }
+            
+            shotCount++;
+            totalShotCount++;
+            updateShotDisplay();
+            
+            const angle = parseInt(angleInput.value);
+            const power = parseInt(powerInput.value);
+            const radians = angle * Math.PI / 180;
+            const initialVelocityMultiplier = 0.2;
+            
+            projectile.x = launcherX;
+            projectile.y = launcherY;
+            projectile.velocityX = power * initialVelocityMultiplier * Math.cos(radians);
+            projectile.velocityY = -power * initialVelocityMultiplier * Math.sin(radians);
+            
+            isProjectileLaunched = true;
+            statusDisplay.textContent = 'Launching...';
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
         });
 
-        // Reset current level
-         resetLevelButton.addEventListener('click', () => {
+        resetLevelButton.addEventListener('click', () => {
+             totalShotCount -= shotCount;
              resetLevel();
              showMessage(`Level ${currentLevelIndex + 1} reset.`);
-         });
+        });
 
-         // Reset entire game
-         resetGameButton.addEventListener('click', () => {
+        resetGameButton.addEventListener('click', () => {
+             totalShotCount = 0;
              currentLevelIndex = 0;
              currentLevel = levels[currentLevelIndex];
              resetLevel();
-             showMessage('Projectile game reset to Level 1.');
-         });
-
-
-        // Reset projectile state to start position
+             showMessage('Projectile game restarted from Level 1.');
+        });
+        
         function resetProjectileState() {
-             projectile.x = launcherX;
-             projectile.y = launcherY;
-             projectile.velocityX = 0;
-             projectile.velocityY = 0;
+             projectile.x = launcherX; projectile.y = launcherY;
+             projectile.velocityX = 0; projectile.velocityY = 0;
         }
 
-        // Reset the current level state
         function resetLevel() {
+            shotCount = 0;
+            updateShotDisplay();
+            launcherX = defaultLauncherX;
+            launcherY = defaultLauncherY;
             isProjectileLaunched = false;
             resetProjectileState();
-            statusDisplay.textContent = '';
-             // Cancel any ongoing animation frame
-             if (animationFrameId) {
-                 cancelAnimationFrame(animationFrameId);
-                 animationFrameId = null;
-             }
-            draw(); // Draw initial state for the current level
+            statusDisplay.textContent = 'Ready to launch!';
+            if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            draw();
         }
 
-        // Initial game setup
-        resetLevel(); // Start at level 1
-
-        // Cleanup function
-        return () => {
-             // Cancel any ongoing animation frame when switching games
-             if (animationFrameId) {
-                 cancelAnimationFrame(animationFrameId);
-                 animationFrameId = null;
-             }
-             // No document listeners to remove for this game
-        };
+        resetLevel();
+        return () => { if (animationFrameId) cancelAnimationFrame(animationFrameId); };
     }
 
 
@@ -1310,20 +1243,18 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (gameName) {
             case 'tic-tac-toe':
                 loadTicTacToe();
-                // No specific cleanup needed currently
                 break;
-            case 'tetris': // Corrected case to match data-game attribute
-                currentGameCleanup = loadTetris(); // Tetris returns a cleanup function
+            case 'tetris':
+                currentGameCleanup = loadTetris();
                 break;
             case 'card-matching':
                 loadCardMatching();
-                 // No specific cleanup needed currently
                 break;
             case 'ping-pong':
-                currentGameCleanup = loadPingPong(); // Ping Pong returns a cleanup function
+                currentGameCleanup = loadPingPong();
                 break;
             case 'projectile':
-                currentGameCleanup = loadProjectileGame(); // Projectile Game returns a cleanup function
+                currentGameCleanup = loadProjectileGame();
                 break;
             default:
                 gameArea.innerHTML = '<h2 class="text-2xl font-semibold text-center mb-4 text-gray-800">Select a game from the menu above!</h2>';
@@ -1338,9 +1269,4 @@ document.addEventListener('DOMContentLoaded', () => {
             loadGame(gameToLoad);
         });
     });
-
-    // Load a default message on page load
-    // Removed the initial message load from JS, handled by HTML default
-    // showMessage('Welcome to the Minigame Arcade!');
-
-}); // End of DOMContentLoaded listener
+});
